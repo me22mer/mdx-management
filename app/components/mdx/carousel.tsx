@@ -3,8 +3,8 @@
 import * as React from "react";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
-import { Carousel, CarouselApi, CarouselContent, CarouselItem } from "./ui/carousel";
-import { Card, CardContent } from "./ui/card";
+import { Carousel, CarouselApi, CarouselContent, CarouselItem } from "../ui/carousel";
+import { Card, CardContent } from "../ui/card";
 
 
 

@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import matter from "gray-matter";
 import { compileMDX } from "next-mdx-remote/rsc";
-import { MDXCarousel } from "@/app/components/mdx-carousel";
-import { MDXImage } from "@/app/components/mdx-image";
+import { MDXCarousel } from "@/app/components/mdx/carousel";
+import { MDXImage } from "@/app/components/mdx/image";
 
 interface CompilationError {
   message: string;

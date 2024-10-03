@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getContent } from "@/lib/utils";
-import { useCompileContent } from "@/hooks/useCompileContent";
+import { getContent } from "@/lib/content";
+import { useCompileContent } from "@/hooks/use-compile-content";
 import { Button } from "@/app/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
