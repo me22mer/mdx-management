@@ -23,7 +23,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useContentContext } from "./contexts/content-context";
-import { createNewItem } from "./services/mdx-services";
+import { createNewItem } from "./services/mdx-service";
 
 export default function Home() {
   const [newItemName, setNewItemName] = useState("");

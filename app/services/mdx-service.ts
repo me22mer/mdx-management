@@ -81,6 +81,17 @@ Start describing your project here...
 export const fetchBlobData = async (): Promise<FolderStructure | null> => {
   try {
     const response = await fetch("/api/data?path=content/")
+    if (!response.ok) {
+      if (response.status === 401) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to access content.",
+          variant: "destructive",
+        })
+        return null
+      }
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
     const data: { blobs: BlobData[] } = await response.json()
     const structure: FolderStructure = { blog: [], projects: [] }
 

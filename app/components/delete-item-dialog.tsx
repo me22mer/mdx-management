@@ -3,7 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
-import { BlobData } from "@/app/services/mdx-services";
+import { BlobData } from "@/app/services/mdx-service";
 import { toast } from "@/hooks/use-toast";
 
 interface DeleteConfirmationDialogProps {

@@ -1,51 +1,58 @@
-import { NextResponse } from 'next/server'
-import { put, del, list } from '@vercel/blob'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from "next-auth/next"
+import { list, put, del } from '@vercel/blob'
+import { authOptions } from '@/lib/auth'
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const path = searchParams.get('path')
-
-  if (!path) {
-    return NextResponse.json({ error: 'path is required' }, { status: 400 })
+const authenticateAdmin = async () => {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    throw new Error('Unauthorized')
   }
+  return session
+}
 
+export async function GET(request: NextRequest) {
   try {
-    const blobs = await list({ prefix: path })
-    return NextResponse.json(blobs)
+    await authenticateAdmin()
+    const { searchParams } = new URL(request.url)
+    const path = searchParams.get('path')
+    if (!path) {
+      return NextResponse.json({ error: 'Path is required' }, { status: 400 })
+    }
+    const { blobs } = await list({ prefix: path })
+    return NextResponse.json({ blobs })
   } catch (error) {
-    console.error('Error listing files:', error)
-    return NextResponse.json({ error: 'Failed to list files' }, { status: 500 })
+    console.error('GET Error:', error)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }
 
-export async function POST(request: Request) {
-  const { path, content } = await request.json()
-
-  if (!path || !content) {
-    return NextResponse.json({ error: 'path and content are required' }, { status: 400 })
-  }
-
+export async function POST(request: NextRequest) {
   try {
+    await authenticateAdmin()
+    const { path, content } = await request.json()
+    if (!path || !content) {
+      return NextResponse.json({ error: 'Path and content are required' }, { status: 400 })
+    }
     const blob = await put(path, content, { access: 'public' })
-    return NextResponse.json({ url: blob.url })
+    return NextResponse.json({ success: true, blob })
   } catch (error) {
-    console.error('Error creating/updating file:', error)
-    return NextResponse.json({ error: 'Failed to create/update file' }, { status: 500 })
+    console.error('POST Error:', error)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }
 
-export async function DELETE(request: Request) {
-  const { url } = await request.json()
-
-  if (!url) {
-    return NextResponse.json({ error: 'url is required' }, { status: 400 })
-  }
-
+export async function DELETE(request: NextRequest) {
   try {
+    await authenticateAdmin()
+    const { url } = await request.json()
+    if (!url) {
+      return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+    }
     await del(url)
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting file:', error)
-    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 })
+    console.error('DELETE Error:', error)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }

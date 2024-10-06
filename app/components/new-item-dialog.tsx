@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Label } from "@/app/components/ui/label";
 import { useTransitionRouter } from 'next-view-transitions'
-import { createNewItem } from "@/app/services/mdx-services";
+import { createNewItem } from "@/app/services/mdx-service";
 
 type CategoryType = "blog" | "projects";
 

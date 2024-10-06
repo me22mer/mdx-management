@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import { useContentContext } from "@/app/contexts/content-context";
-import { BlobData, fetchBlobData } from "@/app/services/mdx-services";
+import { BlobData, fetchBlobData } from "@/app/services/mdx-service";
 import { usePathname } from "next/navigation";
 import { useTransitionRouter } from "next-view-transitions";
 import { NewItemDialog } from "./new-item-dialog";

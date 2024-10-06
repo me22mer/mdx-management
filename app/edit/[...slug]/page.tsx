@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
 import { Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 import { useContentContext } from "@/app/contexts/content-context";
-import { BlobData, saveContent, updatePreview } from "@/app/services/mdx-services";
+import { BlobData, saveContent, updatePreview } from "@/app/services/mdx-service";
 import { useTransitionRouter } from 'next-view-transitions'
 import { notFound } from "next/navigation";
 import { EditorComponent } from "@/app/components/editor";
