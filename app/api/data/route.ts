@@ -34,25 +34,6 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PATCH(request: Request) {
-  const { fromUrl, toPathname, content } = await request.json();
-
-  if (!fromUrl || !toPathname || content === undefined) {
-    return NextResponse.json({ error: 'fromUrl, toPathname, and content are required' }, { status: 400 });
-  }
-
-  try {
-    const blob = await put(toPathname, content, { 
-      access: 'public',
-      addRandomSuffix: false,
-    });
-    return NextResponse.json(blob);
-  } catch (error) {
-    console.error('Error updating file:', error);
-    return NextResponse.json({ error: 'Failed to update file' }, { status: 500 });
-  }
-}
-
 export async function DELETE(request: Request) {
   const { url } = await request.json()
 

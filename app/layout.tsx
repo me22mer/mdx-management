@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import Sidebar from "./components/sidebar";
-import { ThemeProvider } from "./components/theme-provider";
 import { ContentProvider } from "./contexts/content-context";
+import { ViewTransitions } from "next-view-transitions";
+import dynamic from 'next/dynamic';
+import { SkeletonSidebar } from "./components/skeleton-sidebar";
+
+const Sidebar = dynamic(() => import('./components/sidebar').then((mod) => mod.Sidebar), {
+  ssr: false,
+loading: () => <SkeletonSidebar />
+});
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,19 +33,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
-      >
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <ContentProvider>
-            <div className="flex h-screen bg-background text-foreground">
+    <ViewTransitions>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        >
+          <div className="flex h-screen bg-background text-foreground">
+            <ContentProvider>
               <Sidebar />
-              <main className="flex-1 overflow-y-auto p-6">{children}</main>
-            </div>
-          </ContentProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+              <div className="flex-1 overflow-y-auto p-6">{children}</div>
+            </ContentProvider>
+          </div>
+        </body>
+      </html>
+    </ViewTransitions>
   );
 }
