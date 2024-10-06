@@ -14,7 +14,14 @@ interface FolderStructure {
 
 type CategoryType = "blog" | "projects"
 
-export const createNewItem = async (newItemType: CategoryType, newItemName: string) => {
+const getLocalStorage = () => {
+  if (typeof window !== 'undefined') {
+    return window.localStorage
+  }
+  return null
+}
+
+export const createNewItem = async (newItemType: CategoryType, newItemName: string, isAdmin: boolean) => {
   const currentDate = format(new Date(), 'M/d/yyyy')
   const content = newItemType === 'blog'
     ? `
@@ -50,16 +57,26 @@ Start describing your project here...
 `
 
   try {
-    const response = await fetch("/api/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: `content/${newItemType}/${newItemName.trim()}/page.mdx`,
-        content,
-      }),
-    })
+    if (isAdmin) {
+      const response = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: `content/${newItemType}/${newItemName.trim()}/page.mdx`,
+          content,
+        }),
+      })
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    } else {
+      const localStorage = getLocalStorage()
+      if (localStorage) {
+        const key = `${newItemType}/${newItemName.trim()}`
+        localStorage.setItem(key, content)
+      } else {
+        throw new Error("localStorage is not available")
+      }
+    }
 
     toast({
       title: "Success",
@@ -78,31 +95,52 @@ Start describing your project here...
   }
 }
 
-export const fetchBlobData = async (): Promise<FolderStructure | null> => {
+export const fetchBlobData = async (isAdmin: boolean): Promise<FolderStructure | null> => {
   try {
-    const response = await fetch("/api/data?path=content/")
-    if (!response.ok) {
-      if (response.status === 401) {
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to access content.",
-          variant: "destructive",
-        })
-        return null
+    if (isAdmin) {
+      const response = await fetch("/api/data?path=content/")
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Error",
+            description: "Please log in to access content.",
+            variant: "destructive",
+          })
+          return null
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const data: { blobs: BlobData[] } = await response.json()
+      const structure: FolderStructure = { blog: [], projects: [] }
+
+      data.blobs.forEach((blob: BlobData) => {
+        const [, category] = blob.pathname.split("/")
+        if (category === "blog" || category === "projects") {
+          structure[category].push(blob)
+        }
+      })
+
+      return structure
+    } else {
+      const localStorage = getLocalStorage()
+      if (localStorage) {
+        const structure: FolderStructure = { blog: [], projects: [] }
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key) {
+            const [category] = key.split('/')
+            if (category === 'blog' || category === 'projects') {
+              structure[category].push({
+                url: key,
+                pathname: `content/${key}/page.mdx`
+              })
+            }
+          }
+        }
+        return structure
+      }
+      return null
     }
-    const data: { blobs: BlobData[] } = await response.json()
-    const structure: FolderStructure = { blog: [], projects: [] }
-
-    data.blobs.forEach((blob: BlobData) => {
-      const [, category] = blob.pathname.split("/")
-      if (category === "blog" || category === "projects") {
-        structure[category].push(blob)
-      }
-    })
-
-    return structure
   } catch (error) {
     console.error("Error fetching blob data:", error)
     toast({
@@ -123,30 +161,39 @@ export const updatePreview = async (mdxContent: string) => {
   }
 }
 
-export const saveContent = async (path: string, content: string) => {
+export const saveContent = async (path: string, content: string, isAdmin: boolean) => {
   try {
-    const checkResponse = await fetch(`/api/data?path=${path}`)
-    const checkData: { blobs: BlobData[] } = await checkResponse.json()
-    const existingFile = checkData.blobs.find((blob) => blob.pathname.startsWith(path))
+    if (isAdmin) {
+      const checkResponse = await fetch(`/api/data?path=${path}`)
+      const checkData: { blobs: BlobData[] } = await checkResponse.json()
+      const existingFile = checkData.blobs.find((blob) => blob.pathname.startsWith(path))
 
-    const newFilePath = `${path}/page.mdx`
-    const createResponse = await fetch("/api/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: newFilePath, content }),
-    })
-
-    if (!createResponse.ok) {
-      const errorText = await createResponse.text()
-      throw new Error(`HTTP error! status: ${createResponse.status}, message: ${errorText}`)
-    }
-
-    if (existingFile) {
-      await fetch("/api/data", {
-        method: "DELETE",
+      const newFilePath = `${path}/page.mdx`
+      const createResponse = await fetch("/api/data", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: existingFile.url }),
+        body: JSON.stringify({ path: newFilePath, content }),
       })
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text()
+        throw new Error(`HTTP error! status: ${createResponse.status}, message: ${errorText}`)
+      }
+
+      if (existingFile) {
+        await fetch("/api/data", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: existingFile.url }),
+        })
+      }
+    } else {
+      const localStorage = getLocalStorage()
+      if (localStorage) {
+        localStorage.setItem(path, content)
+      } else {
+        throw new Error("localStorage is not available")
+      }
     }
 
     toast({

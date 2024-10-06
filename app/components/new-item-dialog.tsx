@@ -13,9 +13,10 @@ type CategoryType = "blog" | "projects";
 
 interface NewItemDialogProps {
   onRefresh: () => Promise<void>;
+  isAdmin: boolean;
 }
 
-export function NewItemDialog({ onRefresh }: NewItemDialogProps) {
+export function NewItemDialog({ onRefresh, isAdmin }: NewItemDialogProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemType, setNewItemType] = useState<CategoryType>("blog");
@@ -23,7 +24,7 @@ export function NewItemDialog({ onRefresh }: NewItemDialogProps) {
 
   const handleNewItem = async () => {
     if (newItemName.trim()) {
-      const success = await createNewItem(newItemType, newItemName.trim());
+      const success = await createNewItem(newItemType, newItemName.trim(), isAdmin);
       if (success) {
         await onRefresh();
         router.push(`/edit/${newItemType}/${newItemName.trim()}`);

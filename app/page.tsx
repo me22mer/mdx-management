@@ -24,6 +24,7 @@ import { Label } from "@/app/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useContentContext } from "./contexts/content-context";
 import { createNewItem } from "./services/mdx-service";
+import { useAuth } from "@/app/services/auth-service";
 
 export default function Home() {
   const [newItemName, setNewItemName] = useState("");
@@ -31,11 +32,12 @@ export default function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const router = useRouter();
   const { setShouldRefresh } = useContentContext();
+  const { isAdmin } = useAuth();
 
   const handleCreateNewItem = async () => {
     if (!newItemName.trim()) return;
 
-    const success = await createNewItem(newItemType, newItemName.trim());
+    const success = await createNewItem(newItemType, newItemName.trim(), isAdmin);
     if (success) {
       setShouldRefresh(true);
       router.push(`/edit/${newItemType}/${newItemName.trim()}`);

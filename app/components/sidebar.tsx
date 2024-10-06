@@ -16,6 +16,8 @@ import { usePathname } from "next/navigation";
 import { useTransitionRouter } from "next-view-transitions";
 import { NewItemDialog } from "./new-item-dialog";
 import { DeleteItemDialog } from "./delete-item-dialog";
+import { useAuth } from "@/app/services/auth-service";
+import { LogoutButton } from "./logout-button";
 
 type CategoryType = "blog" | "projects";
 
@@ -38,13 +40,14 @@ export function Sidebar() {
     useContentContext();
   const pathname = usePathname();
   const router = useTransitionRouter();
+  const { isAuthenticated, isAdmin } = useAuth()
 
   const isEditPage = pathname.startsWith("/edit");
 
   const refreshData = useCallback(async () => {
-    const data = await fetchBlobData();
+    const data = await fetchBlobData(isAdmin);
     if (data) setFolderStructure(data);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     refreshData();
@@ -145,7 +148,7 @@ export function Sidebar() {
       </div>
       {isEditPage && (
         <div className="p-4">
-          <NewItemDialog onRefresh={refreshData} />
+          <NewItemDialog onRefresh={refreshData} isAdmin={isAdmin} />
         </div>
       )}
 
@@ -155,11 +158,18 @@ export function Sidebar() {
         fileToDelete={fileToDelete}
         onDelete={refreshData}
         setDeletedItem={setDeletedItem}
+        isAdmin={isAdmin}
       />
 
       <ScrollArea className="flex-grow">
         <div className="p-4">{categories.map(renderCategory)}</div>
       </ScrollArea>
+
+      {isAuthenticated && (
+        <div className="p-4 border-t border-border">
+          <LogoutButton />
+        </div>
+      )}
     </aside>
   );
 }

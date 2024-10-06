@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
 import { Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 import { useContentContext } from "@/app/contexts/content-context";
-import { BlobData, saveContent, updatePreview } from "@/app/services/mdx-service";
+import { saveContent, updatePreview, fetchBlobData } from "@/app/services/mdx-service";
 import { useTransitionRouter } from 'next-view-transitions'
 import { notFound } from "next/navigation";
 import { EditorComponent } from "@/app/components/editor";
 import { PreviewComponent } from "@/app/components/preview";
+import { useAuth } from "@/app/services/auth-service";
 
 interface EditPageProps {
   params: { slug: string[] };
@@ -27,20 +28,27 @@ export default function EditPage({ params }: EditPageProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { shouldRefresh, setShouldRefresh, deletedItem, setDeletedItem } = useContentContext();
-  const router = useTransitionRouter()
+  const router = useTransitionRouter();
+  const { isAdmin } = useAuth();
 
   const fetchMdxContent = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/data?path=content/${params.slug.join("/")}`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data: { blobs: BlobData[] } = await response.json();
-      
-      if (data.blobs && data.blobs.length > 0) {
-        const exactMatch = data.blobs.find((blob: BlobData) => blob.pathname === `content/${params.slug.join("/")}/page.mdx`);        
-        if (exactMatch) {
-          const mdxContent = await fetch(exactMatch.url).then((res) => res.text());
+      const data = await fetchBlobData(isAdmin);
+      if (data) {
+        const category = params.slug[0] as "blog" | "projects";
+        const fileName = params.slug[1];
+        const file = data[category].find((item) => item.pathname.includes(fileName));
+        
+        if (file) {
+          let mdxContent;
+          if (isAdmin) {
+            mdxContent = await fetch(file.url).then((res) => res.text());
+          } else {
+            const localStorage = window.localStorage;
+            mdxContent = localStorage.getItem(`${category}/${fileName}`) || "";
+          }
           setContent(mdxContent);
           setOriginalContent(mdxContent);
           const compiled = await updatePreview(mdxContent);
@@ -57,7 +65,7 @@ export default function EditPage({ params }: EditPageProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [params.slug, router]);
+  }, [params.slug, router, isAdmin]);
 
   useEffect(() => {
     fetchMdxContent();
@@ -88,8 +96,8 @@ export default function EditPage({ params }: EditPageProps) {
     setIsSaving(true);
     setError(null);
     setSuccess(null);
-    const path = `content/${params.slug.join("/")}`;
-    const success = await saveContent(path, content);
+    const path = `${params.slug[0]}/${params.slug[1]}`;
+    const success = await saveContent(path, content, isAdmin);
     if (success) {
       setSuccess("Your file has been saved successfully.");
       setOriginalContent(content);

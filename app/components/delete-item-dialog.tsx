@@ -12,6 +12,7 @@ interface DeleteConfirmationDialogProps {
   fileToDelete: BlobData | null;
   onDelete: () => Promise<void>;
   setDeletedItem: (path: string) => void;
+  isAdmin: boolean;
 }
 
 export function DeleteItemDialog({
@@ -19,19 +20,24 @@ export function DeleteItemDialog({
   onClose,
   fileToDelete,
   onDelete,
-  setDeletedItem
+  setDeletedItem,
+  isAdmin
 }: DeleteConfirmationDialogProps) {
   const handleDelete = async () => {
     if (!fileToDelete) return;
 
     try {
-      const response = await fetch("/api/data", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: fileToDelete.url }),
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      await response.json();
+      if (isAdmin) {
+        const response = await fetch("/api/data", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: fileToDelete.url }),
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        await response.json();
+      } else {
+        localStorage.removeItem(fileToDelete.pathname.replace('content/', '').replace('/page.mdx', ''));
+      }
       toast({
         title: "File deleted",
         description: "The file has been deleted successfully.",
