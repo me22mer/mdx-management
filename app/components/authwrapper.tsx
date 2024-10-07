@@ -2,7 +2,9 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, ReactNode } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { useTransitionRouter } from "next-view-transitions";
 
 interface AuthWrapperProps {
   children: ReactNode;
@@ -10,7 +12,7 @@ interface AuthWrapperProps {
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
   const { status } = useSession();
-  const router = useRouter();
+  const router = useTransitionRouter();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -20,7 +22,11 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   }, [status, router, pathname]);
 
   if (status === "loading") {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
   }
 
   return <>{children}</>;

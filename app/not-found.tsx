@@ -1,7 +1,7 @@
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { FileQuestion } from "lucide-react"
-import Link from "next/link"
+import { Link } from "next-view-transitions"
 
 export default function NotFound() {
   return (
