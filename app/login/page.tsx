@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
+  // CardFooter,
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
@@ -133,7 +133,7 @@ export default function LoginPage() {
             </Tooltip>
           </TooltipProvider>
         </CardContent>
-        <CardFooter>
+        {/* <CardFooter>
           <p className="text-sm text-muted-foreground text-center w-full">
             By signing in, you agree to our{" "}
             <a
@@ -151,7 +151,7 @@ export default function LoginPage() {
             </a>
             .
           </p>
-        </CardFooter>
+        </CardFooter> */}
       </Card>
     </div>
   );
