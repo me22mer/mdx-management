@@ -3,7 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
-import { BlobData} from "@/app/services/mdx-service";
+import { BlobData } from "@/app/services/mdx-service";
 import { toast } from "@/hooks/use-toast";
 
 interface DeleteConfirmationDialogProps {
@@ -36,7 +36,8 @@ export function DeleteItemDialog({
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         await response.json();
       } else {
-        localStorage.removeItem(fileToDelete.pathname.replace('content/', '').replace('/page.mdx', ''));
+        const key = fileToDelete.pathname;
+        localStorage.removeItem(key);
       }
       toast({
         title: "File deleted",
