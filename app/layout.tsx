@@ -6,7 +6,6 @@ import { Providers } from "./components/providers";
 import { MainLayout } from "./components/main-layout";
 import { AuthWrapper } from "./components/authwrapper";
 
-
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",

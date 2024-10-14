@@ -16,34 +16,75 @@ import {
   UpdateIcon,
   ClockIcon,
   ReaderIcon,
+  QuestionMarkCircledIcon,
 } from "@radix-ui/react-icons";
 import Link from "next/link";
 import React from "react";
 
 interface BaseMetadataProps {
+  type?: string;
   title: string;
   description: string;
   publishedAt: string;
   tags: string[];
 }
 
-interface ProjectMetadataProps extends BaseMetadataProps {
-  type: "project";
-  repository?: string;
-  url?: string;
-  status?: string;
+interface AdditionalFields {
+  [key: string]: string | boolean | undefined;
 }
 
-interface BlogMetadataProps extends BaseMetadataProps {
-  type: "blog";
-  published?: boolean;
-  readingTime?: string;
-}
+type MDXMetadataProps = BaseMetadataProps & AdditionalFields;
 
-type MDXMetadataProps = ProjectMetadataProps | BlogMetadataProps;
+const IconMap: { [key: string]: React.ReactNode } = {
+  repository: <GitHubLogoIcon className="mr-2" />,
+  url: <GlobeIcon className="mr-2" />,
+  status: <UpdateIcon className="mr-2" />,
+  readingTime: <ClockIcon className="mr-2" />,
+  published: <ReaderIcon className="mr-2" />,
+};
 
 export function MDXMetadata(props: MDXMetadataProps) {
-  const { title, description, publishedAt, tags } = props;
+  const { type, title, description, publishedAt, tags, ...additionalFields } = props;
+
+  const renderAdditionalFields = () => {
+    return Object.entries(additionalFields).map(([key, value]) => {
+      if (typeof value === "boolean") {
+        return (
+          <div key={key} className="flex items-center text-sm text-muted-foreground">
+            {IconMap[key] || <QuestionMarkCircledIcon className="mr-2" />}
+            {key.charAt(0).toUpperCase() + key.slice(1)}: {value ? "Yes" : "No"}
+          </div>
+        );
+      }
+      if (typeof value === "string") {
+        if (key === "repository" || key === "url") {
+          return (
+            <Link
+              key={key}
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-sm text-muted-foreground hover:text-primary"
+            >
+              {IconMap[key] || <QuestionMarkCircledIcon className="mr-2" />}
+              {key === "repository" ? "View Repository" : "Visit Website"}
+            </Link>
+          );
+        }
+        return (
+          <div key={key} className="flex items-center text-sm text-muted-foreground">
+            {IconMap[key] || <QuestionMarkCircledIcon className="mr-2" />}
+            {key.charAt(0).toUpperCase() + key.slice(1)}: {value}
+          </div>
+        );
+      }
+      return null;
+    });
+  };
+
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
   return (
     <Card className="w-full max-w-3xl mx-auto mb-8">
@@ -72,53 +113,16 @@ export function MDXMetadata(props: MDXMetadataProps) {
             <CalendarIcon className="mr-2" />
             Published: {publishedAt}
           </div>
-          {props.type === "project" && (
+          {type && (
             <div className="flex items-center">
-              <UpdateIcon className="mr-2" />
-              Status: {props.status}
-            </div>
-          )}
-          {props.type === "blog" && (
-            <div className="flex items-center">
-              <ClockIcon className="mr-2" />
-              Reading Time: {props.readingTime}
+              <QuestionMarkCircledIcon className="mr-2" />
+              Type: {capitalizeFirstLetter(type)}
             </div>
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        {props.type === "project" && (
-          <>
-            {props.repository && (
-              <Link
-                href={props.repository}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center text-sm text-muted-foreground hover:text-primary"
-              >
-                <GitHubLogoIcon className="mr-2" />
-                View Repository
-              </Link>
-            )}
-            {props.url && (
-              <Link
-                href={props.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center text-sm text-muted-foreground hover:text-primary"
-              >
-                <GlobeIcon className="mr-2" />
-                Visit Website
-              </Link>
-            )}
-          </>
-        )}
-        {props.type === "blog" && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <ReaderIcon className="mr-2" />
-            {props.published ? "Published" : "Draft"} Blog Post
-          </div>
-        )}
+      <CardFooter className="flex flex-wrap gap-4 justify-between">
+        {renderAdditionalFields()}
       </CardFooter>
     </Card>
   );

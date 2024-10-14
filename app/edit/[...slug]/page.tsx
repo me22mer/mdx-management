@@ -1,191 +1,24 @@
-"use client";
+import { Suspense } from 'react';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import dynamic from 'next/dynamic';
+import { Loader2 } from "lucide-react";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/app/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import type { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
-import { Loader2, AlertTriangle, CheckCircle } from "lucide-react";
-import { useContentContext } from "@/app/contexts/content-context";
-import { saveContent, updatePreview, fetchBlobData } from "@/app/services/mdx-service";
-import { useTransitionRouter } from 'next-view-transitions'
-import { notFound } from "next/navigation";
-import { EditorComponent } from "@/app/components/editor";
-import { PreviewComponent } from "@/app/components/preview";
-import { useAuth } from "@/app/services/auth-service";
+const EditPageContent = dynamic(() => import('@/app/components/edit-page-content'), {
+  loading: () => <div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>,
+});
 
-interface EditPageProps {
-  params: { slug: string[] };
-}
+export default async function EditPage({ params }: { params: { slug: string[] } }) {
+  const session = await getServerSession(authOptions);
 
-export default function EditPage({ params }: EditPageProps) {
-  const [content, setContent] = useState("");
-  const [originalContent, setOriginalContent] = useState("");
-  const [compiledSource, setCompiledSource] = useState<MDXRemoteSerializeResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const { shouldRefresh, setShouldRefresh, deletedItem, setDeletedItem } = useContentContext();
-  const router = useTransitionRouter();
-  const { isAdmin } = useAuth();
-
-  const fetchMdxContent = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await fetchBlobData(isAdmin);
-      if (data) {
-        const category = params.slug[0] as "blog" | "projects";
-        const fileName = params.slug[1];
-        const file = data[category].find((item) => item.pathname.includes(fileName));
-        
-        if (file) {
-          let mdxContent;
-          if (isAdmin) {
-            mdxContent = await fetch(file.url).then((res) => res.text());
-          } else {
-            const localStorage = window.localStorage;
-            mdxContent = localStorage.getItem(`${category}/${fileName}`) || "";
-          }
-          setContent(mdxContent);
-          setOriginalContent(mdxContent);
-          const compiled = await updatePreview(mdxContent);
-          if (compiled) setCompiledSource(compiled);
-        } else {
-          router.push(notFound());
-        }
-      } else {
-        router.push(notFound());
-      }
-    } catch (error) {
-      console.error("Error fetching MDX content:", error);
-      setError(`Failed to load content: ${error instanceof Error ? error.message : "Unknown error"}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.slug, router, isAdmin]);
-
-  useEffect(() => {
-    fetchMdxContent();
-  }, [fetchMdxContent]);
-
-  useEffect(() => {
-    if (deletedItem && deletedItem.startsWith(`content/${params.slug.join("/")}`)) {
-      router.push('/');
-      setDeletedItem(null);
-    }
-  }, [deletedItem, params.slug, router, setDeletedItem]);
-
-  useEffect(() => {
-    if (shouldRefresh) {
-      fetchMdxContent();
-      setShouldRefresh(false);
-    }
-  }, [shouldRefresh, fetchMdxContent, setShouldRefresh]);
-
-  const handleContentChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setContent(newContent);
-    const compiled = await updatePreview(newContent);
-    if (compiled) setCompiledSource(compiled);
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setError(null);
-    setSuccess(null);
-    const path = `${params.slug[0]}/${params.slug[1]}`;
-    const success = await saveContent(path, content, isAdmin);
-    if (success) {
-      setSuccess("Your file has been saved successfully.");
-      setOriginalContent(content);
-      const compiled = await updatePreview(content);
-      if (compiled) setCompiledSource(compiled);
-    } else {
-      setError("Failed to save content. Please try again.");
-    }
-    setIsSaving(false);
-  };
-
-  const handleToolbarAction = (
-    action: "bold" | "italic" | "unordered-list" | "ordered-list" | "image" | "link"
-  ) => {
-    const actions = {
-      bold: "**bold text**",
-      italic: "*italic text*",
-      "unordered-list": "\n- unordered list item",
-      "ordered-list": "\n1. ordered list item",
-      image: "\n![Alt text](image-url)",
-      link: "[Link text](url)",
-    };
-    setContent((prevContent) => `${prevContent}${actions[action]}`);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+  if (!session) {
+    redirect("/login");
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold">{params.slug.join(" / ")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {success && (
-            <Alert variant="default" className="mb-4 bg-green-50 text-green-800 border-green-300">
-              <CheckCircle className="h-4 w-4 text-green-400" />
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-          <div className="mb-4">
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || content === originalContent}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
-          </div>
-          <Tabs defaultValue="edit" className="w-full">
-            <TabsList className="grid w-max grid-cols-2">
-              <TabsTrigger value="edit">Edit</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-            <TabsContent value="edit">
-              <EditorComponent
-                content={content}
-                onContentChange={handleContentChange}
-                onToolbarAction={handleToolbarAction}
-              />
-            </TabsContent>
-            <TabsContent value="preview">
-              <PreviewComponent compiledSource={compiledSource} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <EditPageContent params={params} />
+    </Suspense>
   );
 }

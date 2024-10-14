@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Button } from "@/app/components/ui/button";
-import { File, Trash2, FolderOpen, Folder } from "lucide-react";
+import { File, Trash2, FolderOpen, Folder, Plus } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -11,42 +11,39 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import { useContentContext } from "@/app/contexts/content-context";
-import { BlobData, fetchBlobData } from "@/app/services/mdx-service";
+import { BlobData, fetchBlobData, CategoryType } from "@/app/services/mdx-service";
 import { usePathname } from "next/navigation";
 import { useTransitionRouter } from "next-view-transitions";
-import { NewItemDialog } from "./new-item-dialog";
 import { DeleteItemDialog } from "./delete-item-dialog";
 import { useAuth } from "@/app/services/auth-service";
 import { LogoutButton } from "./logout-button";
-
-type CategoryType = "blog" | "projects";
+import NewItemDialog from "./new-item-dialog";
 
 interface FolderStructure {
-  blog: BlobData[];
-  projects: BlobData[];
+  [key: string]: BlobData[];
 }
 
 export function Sidebar() {
-  const [folderStructure, setFolderStructure] = useState<FolderStructure>({
-    blog: [],
-    projects: [],
-  });
-  const [expandedFolders, setExpandedFolders] = useState<
-    Record<CategoryType, boolean>
-  >({ blog: true, projects: true });
+  const [folderStructure, setFolderStructure] = useState<FolderStructure>({});
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<BlobData | null>(null);
-  const { shouldRefresh, setShouldRefresh, setDeletedItem } =
-    useContentContext();
+  const [newItemCategory, setNewItemCategory] = useState<CategoryType>("blog");
+  const [isNewCategory, setIsNewCategory] = useState(false);
+  const { shouldRefresh, setShouldRefresh, setDeletedItem } = useContentContext();
   const pathname = usePathname();
   const router = useTransitionRouter();
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin } = useAuth();
 
   const isEditPage = pathname.startsWith("/edit");
 
   const refreshData = useCallback(async () => {
     const data = await fetchBlobData(isAdmin);
-    if (data) setFolderStructure(data);
+    if (data) {
+      setFolderStructure(data);
+      setExpandedFolders(Object.keys(data).reduce((acc, key) => ({ ...acc, [key]: true }), {}));
+    }
   }, [isAdmin]);
 
   useEffect(() => {
@@ -60,16 +57,25 @@ export function Sidebar() {
     }
   }, [shouldRefresh, refreshData, setShouldRefresh]);
 
-  const toggleFolder = useCallback((folderName: CategoryType) => {
-    setExpandedFolders((prev) => ({
-      ...prev,
-      [folderName]: !prev[folderName],
-    }));
+  const toggleFolder = useCallback((folderName: string) => {
+    setExpandedFolders(prev => ({ ...prev, [folderName]: !prev[folderName] }));
   }, []);
 
   const openDeleteDialog = useCallback((file: BlobData) => {
     setFileToDelete(file);
     setDeleteDialogOpen(true);
+  }, []);
+
+  const openNewItemDialog = useCallback((category: CategoryType) => {
+    setNewItemCategory(category);
+    setIsNewCategory(false);
+    setNewItemDialogOpen(true);
+  }, []);
+
+  const openNewCategoryDialog = useCallback(() => {
+    setNewItemCategory("" as CategoryType);
+    setIsNewCategory(true);
+    setNewItemDialogOpen(true);
   }, []);
 
   const renderFileItem = useCallback(
@@ -83,7 +89,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center flex-grow text-sm overflow-hidden justify-start p-0 h-auto hover:bg-accent "
+                className="flex items-center flex-grow text-sm overflow-hidden justify-start p-0 h-auto hover:bg-accent hover:text-foreground"
                 onClick={() =>
                   router.push(
                     `/edit/${file.pathname
@@ -115,31 +121,41 @@ export function Sidebar() {
   );
 
   const renderCategory = useCallback(
-    (category: CategoryType) => (
+    (category: string) => (
       <div key={category} className="mb-6">
-        <Button
-          variant="ghost"
-          className="text-lg font-semibold w-full justify-start px-2 py-1 hover:bg-accent hover:text-accent-foreground"
-          onClick={() => toggleFolder(category)}
-        >
-          {expandedFolders[category] ? (
-            <FolderOpen className="w-5 h-5 mr-2" />
-          ) : (
-            <Folder className="w-5 h-5 mr-2" />
-          )}
-          {category.charAt(0).toUpperCase() + category.slice(1)}
-        </Button>
+        <div className="flex items-center justify-between group">
+          <Button
+            variant="ghost"
+            className="text-lg font-semibold w-full justify-start px-2 py-1 hover:bg-accent hover:text-foreground"
+            onClick={() => toggleFolder(category)}
+          >
+            {expandedFolders[category] ? (
+              <FolderOpen className="w-5 h-5 mr-2" />
+            ) : (
+              <Folder className="w-5 h-5 mr-2" />
+            )}
+            {category.charAt(0).toUpperCase() + category.slice(1)}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openNewItemDialog(category)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
         {expandedFolders[category] && (
           <div className="ml-4 mt-2 space-y-1">
-            {folderStructure[category].map(renderFileItem)}
+            {folderStructure[category]?.map(renderFileItem)}
           </div>
         )}
       </div>
     ),
-    [expandedFolders, folderStructure, renderFileItem, toggleFolder]
+    [expandedFolders, folderStructure, renderFileItem, toggleFolder, openNewItemDialog]
   );
 
-  const categories = useMemo(() => ["blog", "projects"] as const, []);
+  const categories = useMemo(() => Object.keys(folderStructure), [folderStructure]);
 
   return (
     <aside className="w-80 border-r border-border bg-background flex flex-col h-screen">
@@ -148,9 +164,19 @@ export function Sidebar() {
       </div>
       {isEditPage && (
         <div className="p-4">
-          <NewItemDialog onRefresh={refreshData} isAdmin={isAdmin} />
+          <Button onClick={openNewCategoryDialog} className="w-full">
+            New Category
+          </Button>
         </div>
       )}
+      <NewItemDialog
+        isOpen={newItemDialogOpen}
+        onClose={() => setNewItemDialogOpen(false)}
+        isAdmin={isAdmin}
+        onRefresh={refreshData}
+        initialCategory={newItemCategory}
+        isNewCategory={isNewCategory}
+      />
 
       <DeleteItemDialog
         isOpen={deleteDialogOpen}

@@ -1,82 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/app/components/ui/button";
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
-import { Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Label } from "@/app/components/ui/label";
-import { useTransitionRouter } from 'next-view-transitions'
-import { createNewItem } from "@/app/services/mdx-service";
-
-type CategoryType = "blog" | "projects";
+import { Button } from "@/app/components/ui/button";
+import { createNewItem, CategoryType } from "@/app/services/mdx-service";
+import { useTransitionRouter } from "next-view-transitions";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 
 interface NewItemDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
   onRefresh: () => Promise<void>;
   isAdmin: boolean;
+  initialCategory?: CategoryType;
+  isNewCategory: boolean;
 }
 
-export function NewItemDialog({ onRefresh, isAdmin }: NewItemDialogProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+export default function NewItemDialog({
+  isOpen,
+  onClose,
+  onRefresh,
+  isAdmin,
+  initialCategory = "blog",
+  isNewCategory,
+}: NewItemDialogProps) {
   const [newItemName, setNewItemName] = useState("");
-  const [newItemType, setNewItemType] = useState<CategoryType>("blog");
+  const [newItemType, setNewItemType] = useState<CategoryType>(initialCategory);
+  const [newTypeName, setNewTypeName] = useState("");
   const router = useTransitionRouter();
 
-  const handleNewItem = async () => {
-    if (newItemName.trim()) {
-      const success = await createNewItem(newItemType, newItemName.trim(), isAdmin);
-      if (success) {
-        await onRefresh();
-        router.push(`/edit/${newItemType}/${newItemName.trim()}`);
-      }
+  useEffect(() => {
+    if (isOpen) {
+      setNewItemType(initialCategory);
+      setNewTypeName(initialCategory);
       setNewItemName("");
-      setIsDialogOpen(false);
     }
+  }, [isOpen, initialCategory]);
+
+  const handleCreateNewItem = async () => {
+    if (!newItemName.trim()) return;
+
+    const itemType: CategoryType = isNewCategory ? newTypeName.trim().toLowerCase() : newItemType;
+    if (!itemType) return;
+
+    const success = await createNewItem(
+      itemType,
+      newItemName.trim(),
+      isAdmin
+    );
+    if (success) {
+      await onRefresh();
+      router.push(`/edit/${itemType}/${newItemName.trim()}`);
+    }
+
+    onClose();
+    setNewItemName("");
+    setNewTypeName("");
   };
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default" size="sm" className="w-full h-10">
-          <Plus className="w-4 h-4 mr-1.5" /> New Post
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="text-primary">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Post</DialogTitle>
+          <DialogTitle>{isNewCategory ? "Create New Category" : "Create New Item"}</DialogTitle>
           <DialogDescription>
-            Enter a name for your new blog post or project.
+            {isNewCategory
+              ? "Enter a name for your new category and the first item in it."
+              : "Enter a name for your new content item."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="item-type" className="text-right">
-              Type
-            </Label>
-            <select
-              id="item-type"
-              value={newItemType}
-              onChange={(e) => setNewItemType(e.target.value as CategoryType)}
-              className="col-span-3 p-2 border rounded-md"
-            >
-              <option value="blog">Blog</option>
-              <option value="projects">Project</option>
-            </select>
-          </div>
+          {isNewCategory ? (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="new-type-name" className="text-right">
+                Category Name
+              </Label>
+              <Input
+                id="new-type-name"
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+                className="col-span-3"
+                placeholder="Enter new category name"
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="item-type" className="text-right">
+                Type
+              </Label>
+              <Input
+                id="item-type"
+                value={newItemType}
+                readOnly
+                className="col-span-3"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="item-name" className="text-right">
-              Name
+              {isNewCategory ? "First Item Name" : "Item Name"}
             </Label>
             <Input
               id="item-name"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               className="col-span-3"
+              placeholder="Enter item name"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleNewItem}>Create Item</Button>
+          <Button onClick={handleCreateNewItem} disabled={!newItemName.trim() || (isNewCategory && !newTypeName.trim())}>
+            Create {isNewCategory ? "Category" : "Item"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
