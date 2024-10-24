@@ -147,7 +147,7 @@ export default function EditPageContent({ params }: EditPageContentProps) {
     setIsSaving(true);
     setError(null);
     setSuccess(null);
-    const path = `${params.slug[0]}/${params.slug[1]}`;
+    const path = `content/${params.slug[0]}/${params.slug[1]}`;
     const success = await saveContent(path, content, isAdmin);
     if (success) {
       setSuccess("Your file has been saved successfully.");
